@@ -1,1 +1,8 @@
 "fastapi[standard]"
+sqlalchemy 
+alembic
+asyncpg
+"python-jose[cryptography]"
+"passlib[bcrypt]"
+pydantic-settings
+uuid
