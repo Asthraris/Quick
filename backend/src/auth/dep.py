@@ -5,8 +5,8 @@ from jose import JWTError , jwt
 
 from sqlalchemy.orm import Session
 from src.core.database import get_db
-from auth.model import User
-from core.config import settings
+from src.core.config import settings
+from src.auth.model import User
 
 
 #this is used to specify dat present in authorization header , here exact login path is saved 

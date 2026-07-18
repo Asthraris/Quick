@@ -1,0 +1,18 @@
+services:
+  postgres:
+    #i am using this postgre cause i already have its image downloaded my my machine
+    image: postgres:18
+    container_name: quick_database
+    environment:
+    # its not safe to reveal our details open but since i m running on local host ig its fine
+      - POSTGRES_USER=aman
+      - POSTGRES_PASSWORD=noluck
+      - POSTGRES_DB=quick
+    ports:
+      - "5432:5432"
+    volumes:
+    # Left side is unique to this project; right side is the correct internal Postgres path
+      - quick-postgres-data:/var/lib/postgresql
+
+volumes:
+  quick-postgres-data:

@@ -3,6 +3,7 @@ sqlalchemy
 alembic
 asyncpg
 "python-jose[cryptography]"
-"passlib[bcrypt]"
+# "passlib[bcrypt]"
 pydantic-settings
+bcrypt
 uuid
