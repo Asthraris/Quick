@@ -53,7 +53,9 @@ Alembic does things completely differently. Because it is built specifically for
 8.7 make sure the postgre service is running then , generate 
     `alembic revision --autogenerate -m "create_users_table"`
 
+8.7.1 also th alembic auto checks whats is being changed in model and only gen those thinge in migration
 8.8 `alembic upgrade head` this will upgrage migration one step
+8.8.1 `alembic downgrade -1`for ones , `alembic downgrade base` to drop all migration , `alembic downgrade mig_id` for specific
 
 8.# info it stores an additianal table(alembic_version) which keeps the current db migration version , which maches the migration file serial id
 

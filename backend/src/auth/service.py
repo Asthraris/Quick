@@ -10,12 +10,16 @@ from src.auth.utils import hash_password,verify_password
 async def createUser(req :schema.UserInfo , db :Session)-> schema.UserResponse :
     # 1. Check if the user already exists in the system
     existing_user = db.query(model.User).filter(model.User.email == req.email).first()
-    
     if existing_user:
-        raise UserAlreadyExistsException("Email Already Registered")
+        raise UserAlreadyExistsException("Email  Already Registered")
+    
+    existing_user = db.query(model.User).filter(model.User.username == req.username).first()
+    if existing_user:
+        raise UserAlreadyExistsException("Username  Already Registered")
     
     # 2. Create User
     new_user = model.User(
+        username = req.username ,
         email = req.email , 
         hashed_password = hash_password(req.password)
     )
@@ -26,6 +30,7 @@ async def createUser(req :schema.UserInfo , db :Session)-> schema.UserResponse :
     #create response user which doesnt contain private data
     res = schema.UserResponse(
         id = new_user.id ,
+        username= new_user.username , 
         email= new_user.email,
         is_active= new_user.is_active
     )

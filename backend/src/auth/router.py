@@ -6,7 +6,7 @@ from src.auth import service,schema
 from src.core.exceptions import UserAlreadyExistsException,UserEmailNotExists,UserPasswordNotMatched
 
 
-router = APIRouter(tags=["Authentication"])
+router = APIRouter(tags=["Authentication"] , prefix="/user")
 
 @router.post("/login", response_model = schema.TokenSchema , status_code= status.HTTP_200_OK)
 async def logIn(req :schema.UserInfo , db :Session = Depends(get_db)):
