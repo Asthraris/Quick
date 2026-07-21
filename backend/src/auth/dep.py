@@ -10,7 +10,7 @@ from src.auth.model import User
 
 
 #this is used to specify dat present in authorization header , here exact login path is saved 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")#this tells Oauth2 to send request directly to this defined route(usefull for swagger)
 
 #this mostly verifies that token at every request that this is the same user
 #ALWAYS needs auth details and db session to work and returns user to server

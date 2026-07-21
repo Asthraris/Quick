@@ -1,5 +1,7 @@
 # JWT (json web token) implementation notes
 
+### jwt me multiple session ko kese handle karte hai like if user logs in twice?
+
 1. install dep
 pip install "python-jose[cryptography]" "passlib[bcrypt]"
 

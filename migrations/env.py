@@ -47,6 +47,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # GPT: CRITICAL: Import your models here so Alembic registers them under Base.metadata!
 from src.auth import model
+from src.friends import model
 target_metadata = Base.metadata
 # target_metadata = None
 
