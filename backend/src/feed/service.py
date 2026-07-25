@@ -40,6 +40,7 @@ async def fetchEntireFeed(db: Session, curr_user: User) -> List[media_model.Imag
             )
             .filter(
                 media_model.Media.uploader_id.in_(db.query(friends.c.friend_id)),
+                media_model.Media.status == "ACTIVE",
                 media_model.Media.expiries_at > now,      # Exclude expired
                 media_model.MediaAudit.image_id == None,  # Exclude already viewed
             )

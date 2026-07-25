@@ -34,40 +34,97 @@ Friendships are stored bidirectionally in PostgreSQL. An accepted friendship all
 
 To prevent client-side exploits and unauthorized caching, media URLs are hidden until the user explicitly requests to view an image. Viewing an image atomically writes an audit record to PostgreSQL, permanently locking out subsequent view attempts.
 
-```text
- ┌──────────┐                               ┌──────────┐                          ┌────────────┐
- │  Client  │                               │  FastAPI │                          │ PostgreSQL │
- └────┬─────┘                               └────┬─────┘                          └─────┬──────┘
-      │                                          │                                      │
-      │ 1. GET /feed                │                                      │
-      │─────────────────────────────────────────>│                                      │
-      │                                          │  Query: friend's media Unviewed & Non-Expired       │
-      │                                          │─────────────────────────────────────>│
-      │                                          │  (LEFT JOIN media_audit == NULL)     │
-      │                                          │<─────────────────────────────────────│
-      │ 2. Returns [{ id, uploader_id, date , type }]   │                                      │
-      │    (NO Media URLs exposed)               │                                      │
-      │<─────────────────────────────────────────│                                      │
-      │                                          │                                      │
-      │ 3. POST /media/{id}/view   │                                      │
-      │─────────────────────────────────────────>│                                      │
-      │                                          │ 4. Check expiries_at & image_audit   │
-      │                                          │─────────────────────────────────────>│
-      │                                          │<─────────────────────────────────────│
-      │                                          │                                      │
-      │                                          │ 5. INSERT into image_audit           │
-      │                                          │─────────────────────────────────────>│
-      │                                          │                                      │
-      │ 6. Returns { "url": "https://s3..." }    │                                      │
-      │<─────────────────────────────────────────│                                      │
-      │                                          │                                      │
-      │ 7. POST /media/{id}/view   │                                      │
-      │    (Re-view attempt)                     │                                      │
-      │─────────────────────────────────────────>│ 8. Audit Record Exists               │
-      │                                          │─────────────────────────────────────>│
-      │ 9. 403 Forbidden                         │<─────────────────────────────────────│
-      │<─────────────────────────────────────────│                                      │
+```
+┌──────────┐                               ┌──────────┐                          ┌────────────┐               ┌────────────┐
+ │  Client  │                               │  FastAPI │                          │ PostgreSQL │               │   AWS S3   │
+ └────┬─────┘                               └────┬─────┘                          └─────┬──────┘               └─────┬──────┘
+      │                                          │                                      │                            │
+      │ 1. GET /feed                             │                                      │                            │
+      │─────────────────────────────────────────>│                                      │                            │
+      │                                          │  Query: friend's media Unviewed &    │                            │
+      │                                          │  Non-Expired                         │                            │
+      │                                          │─────────────────────────────────────>│                            │
+      │                                          │  (LEFT JOIN media_audit == NULL)     │                            │
+      │                                          │<─────────────────────────────────────│                            │
+      │ 2. Returns [{ id, uploader_id, date,     │                                      │                            │
+      │    type }] (NO Media URLs exposed)       │                                      │                            │
+      │<─────────────────────────────────────────│                                      │                            │
+      │                                          │                                      │                            │
+      │ 3. POST /media/{id}/view                 │                                      │                            │
+      │─────────────────────────────────────────>│                                      │                            │
+      │                                          │ 4. Check expiries_at & media_audit   │                            │
+      │                                          │─────────────────────────────────────>│                            │
+      │                                          │<─────────────────────────────────────│                            │
+      │                                          │                                      │                            │
+      │                                          │ 5. INSERT into media_audit           │                            │
+      │                                          │─────────────────────────────────────>│                            │
+      │                                          │<─────────────────────────────────────│                            │
+      │                                          │                                      │                            │
+      │                                          │ 6. Generate 5-min presigned GET URL  │                            │
+      │                                          │──────────────────────────────────────────────────────────────────>│
+      │                                          │<──────────────────────────────────────────────────────────────────│
+      │                                          │    Returns temp S3 view URL          │                            │
+      │ 7. Returns presigned-media-url           │                                      │                            │
+      │<─────────────────────────────────────────│                                      │                            │
+      │                                          │                                      │                            │
+      │ 8. GET binary media directly from S3     │                                      │                            │
+      │─────────────────────────────────────────────────────────────────────────────────────────────────────────────>│
+      │<─────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+      │                                          │                                      │                            │
+      │ 9. POST /media/{id}/view                 │                                      │                            │
+      │    (Re-view attempt)                     │                                      │                            │
+      │─────────────────────────────────────────>│ 10. Audit Record Exists             │                            │
+      │                                          │─────────────────────────────────────>│                            │
+      │ 11. 403 Forbidden                        │<─────────────────────────────────────│                            │
+      │<─────────────────────────────────────────│                                      │                            │
+```
 
+### File Upload without Backend as Proxy 
+- Complexity : Addition of S3 bucket (offcourse its gonna be added someday)
+- Advantages : Faster , less Load on Server , Stateless Architecture
+
+```
+Client                       FastAPI Backend                       PostgreSQL                           AWS S3
+   │                                 │                                   │                                  │
+   │ 1. GET /media/upload-url        │                                   │                                  │
+   │    (file_type, file_size)       │                                   │                                  │
+   │────────────────────────────────>│                                   │                                  │
+   │                                 │ 2. Validate metadata              │                                  │
+   │                                 │    (type & max size check)        │                                  │
+   │                                 │                                   │                                  │
+   │                                 │ 3. INSERT INTO media              │                                  │
+   │                                 │    (status = "UPLOADING")         │                                  │
+   │                                 │──────────────────────────────────>│                                  │
+   │                                 │ 4. Generate 5-min presigned POST  │                                  │
+   │                                 │<──────────────────────────────────│                                  │
+   │                                 │                                   │                                  │
+   │                                 │─────────────────────────────────────────────────────────────────────>│
+   │                                 │<─────────────────────────────────────────────────────────────────────│
+   │                                 │    Returns upload fields & URL    │                                  │
+   │ 5. Returns presigned-Upload-URL │                                   │                                  │
+   │    & media_id                   │                                   │                                  │
+   │<────────────────────────────────│                                   │                                  │
+   │                                                                                                        │
+   │ 6. POST binary data directly to S3 (upload_url + fields)                                               │
+   │───────────────────────────────────────────────────────────────────────────────────────────────────────>│
+   │<───────────────────────────────────────────────────────────────────────────────────────────────────────│
+   │    204 No Content (Upload successful)                                                                  │
+   │                                                                                                        │
+   │ 7. POST /media/{media_id}/confirm                                                                      │
+   │────────────────────────────────>│                                   │                                  │
+   │                                 │ 8. Inspect object metadata        │                                  │
+   │                                 │    (s3.head_object)               │                                  │
+   │                                 │─────────────────────────────────────────────────────────────────────>│
+   │                                 │<─────────────────────────────────────────────────────────────────────│
+   │                                 │    Returns ContentLength & Type   │                                  │
+   │                                 │                                   │                                  │
+   │                                 │ 9. UPDATE media                   │                                  │
+   │                                 │    SET status = "ACTIVE"          │                                  │
+   │                                 │──────────────────────────────────>│                                  │
+   │                                 │<──────────────────────────────────│                                  │
+   │ 10. Returns media metadata      │                                   │                                  │
+   │     (Media is now live in feed) │                                   │                                  │
+   │<────────────────────────────────│                                   │                                  │
 ```
 
 ---
@@ -131,6 +188,12 @@ JWT_SECRET_KEY =
 JWT_ALGORITHM = 
 DATABASE_URL = 
 
+# S3 CONFIGS
+AWS_ACCESS_KEY_ID = 
+AWS_SECRET_ACCESS_KEY = 
+AWS_REGION =
+S3_BUCKET_NAME = 
+
 
 ```
 
@@ -169,7 +232,7 @@ Once running, access the interactive API docs at:
 ---
 
 ## 🔮 To Be Added Later
-
+* [ ] Create docker image for the backend , dockerise it
 * [ ] S3 Direct Multipart / Presigned Upload Endpoint
 * [ ] Automated Worker Thread (Celery / APScheduler) for deleting expired S3 assets and also deleting the media after 24 hours right now the access is removed but the the media is not deleted itself
 * [ ] Rate limiting on media feed endpoints

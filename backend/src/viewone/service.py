@@ -23,7 +23,8 @@ async def consume_and_log_image_view(
     # 1. Fetch image record safely
     try:
         media_res = db.query(media_model.Media).filter(
-            media_model.Media.id == im_id
+            media_model.Media.id == im_id,
+            media_model.Media.status == "ACTIVE",
         ).first()
     except SQLAlchemyError as err:
         raise MediaDatabaseException("Failed to query image from database.") from err

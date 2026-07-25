@@ -57,6 +57,12 @@ Alembic does things completely differently. Because it is built specifically for
 8.8 `alembic upgrade head` this will upgrage migration one step
 8.8.1 `alembic downgrade -1`for ones , `alembic downgrade base` to drop all migration , `alembic downgrade mig_id` for specific
 
+
+
+| Tool           | Primary Purpose                                  | Examples                                                           |
+| -------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| **SQLAlchemy** | Interact with the database from your application | `SELECT`, `INSERT`, `UPDATE`, `DELETE`                             |
+| **Alembic**    | Version and apply schema changes                 | `CREATE TABLE`, `ALTER TABLE`, `DROP COLUMN`, indexes, constraints |
 8.# info it stores an additianal table(alembic_version) which keeps the current db migration version , which maches the migration file serial id
 
 

@@ -48,6 +48,27 @@ class MediaDomainException(Exception):
     """Base exception for media domain errors."""
     pass
 
+class InvalidFileTypeException(MediaDomainException):
+    """Raised when the requested MIME type is not allowed."""
+    pass
+
+class FileTooLargeException(MediaDomainException):
+    """Raised when requested file size exceeds max allowed bytes."""
+    pass
+
+
+class ImageNotFoundException(MediaDomainException):
+    """Raised when no pending upload record is found matching the key/ID."""
+    pass
+
+class UploadConfirmationFailedException(MediaDomainException):
+    """Raised when S3 head_object fails or object is missing in S3."""
+    pass
+
+class CorruptedUploadException(MediaDomainException):
+    """Raised when actual uploaded file size/type in S3 mismatches requested metadata."""
+    pass
+
 class ImageNotFoundException(MediaDomainException):
     """Raised when an image ID does not exist in the database."""
     pass

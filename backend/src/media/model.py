@@ -1,4 +1,4 @@
-from sqlalchemy import Column,String,DateTime,ForeignKey,Integer,text
+from sqlalchemy import Column,String,DateTime,ForeignKey,BigInteger,text
 from sqlalchemy.dialects.postgresql import UUID
 from src.core.database import Base
 import uuid
@@ -13,9 +13,9 @@ class Media(Base):
         #genarate using uuid package but stored in postgreporvided UUID
         default=uuid.uuid4
     )
-    url = Column(String,nullable=False)
 
     # Storage bucket key (needed to locate and delete the file from S3 later)
+    # S3 Object key (e.g., "uploads/users/8c3df12d/photo.png")
     file_key = Column(String, nullable=False, unique=True)
 
     uploader_id = Column(
@@ -26,7 +26,10 @@ class Media(Base):
 
     # Metadata
     file_type = Column(String, nullable=False)  # e.g., 'image/png'
-    file_size_bytes = Column(Integer, nullable=True)  # e.g., 204800 (200 KB)
+    file_size_bytes = Column(BigInteger, nullable=True)  # e.g., 204800 (200 KB)
+
+    # Lifecycle Status: 'UPLOADING', 'ACTIVE', 'EXPIRED'
+    status = Column(String, nullable=False, default="UPLOADING", server_default="UPLOADING")
 
     posted_at = Column(
         DateTime(timezone=True),
@@ -42,3 +45,5 @@ class Media(Base):
         nullable=False
     )
 
+
+    
