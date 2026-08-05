@@ -1,4 +1,5 @@
 from uuid import UUID
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.friends import model
 from src.core.exceptions import (
@@ -99,24 +100,21 @@ async def block_req(sender_id : UUID , receiver_id :UUID , db :Session):
 #LATEST CJNEG
 async def GetAllFriends(db : Session , user_id : UUID)->List[UUID]:
 # Checks both (sender=user AND receiver=friend) AND (receiver=user AND sender=friend)
-    # 1. Build the subquery combining sender and receiver IDs
-    friend_ids_subquery = db.query(
+    friend_ids_subquery = select(
         model.Friends.receiver_id.label("friend_id")
-    ).filter(
+    ).where(
         model.Friends.sender_id == user_id,
         model.Friends.status == model.friendStatus.ACCEPTED
     ).union(
-        db.query(
+        select(
             model.Friends.sender_id.label("friend_id")
-        ).filter(
+        ).where(
             model.Friends.receiver_id == user_id,
             model.Friends.status == model.friendStatus.ACCEPTED
         )
     ).subquery()
 
-    # 2. Select the 'friend_id' column from the subquery and execute .scalars().all()
-    # scalars() extracts the raw UUID values instead of returning tuples!
-    friend_ids = db.query(friend_ids_subquery.c.friend_id).scalars().all()
-    
-    return friend_ids
+    # ✅ db.scalars(select(...)) works correctly!
+    stmt = select(friend_ids_subquery.c.friend_id)
+    return list(db.scalars(stmt).all())
 

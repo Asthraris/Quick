@@ -19,7 +19,7 @@ async def fetchEntireFeed(
     ):
     try:
         # pydantic schema itself strips and converts model in to schema
-        return await service.FetchEntireFeed(db= db , curr_user = curr_user)
+        return await service.fetchEntireFeed(db= db , curr_user = curr_user)
     except (EmptyFeedException, NoFriendsFoundException):
         # Return an empty list so the frontend can render an empty feed state
         return []
@@ -34,6 +34,6 @@ async def fetchEntireFeed(
         # Fallback for unexpected system runtime errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while fetching your feed."
+            detail=f"DEBUG ERROR: {type(e).__name__} - {str(e)}"
         )
     

@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-
+from src.media.schema import PresignedViewResponse
 from src.media import model as media_model
 from src.viewone import model as audit_model
+from src.core.s3 import generate_presigned_view_url
 from src.core.exceptions import (
     ImageNotFoundException,
     ImageExpiredException,
@@ -14,16 +15,17 @@ from src.core.exceptions import (
 
 
 async def consume_and_log_image_view(
-    im_id: UUID, 
+    me_id: UUID, 
     viewer_id: UUID, 
-    db: Session
-) -> str:
+    db: Session,
+    expires_in_seconds: int = 300
+) -> PresignedViewResponse:
     now = datetime.now(timezone.utc)
 
     # 1. Fetch image record safely
     try:
         media_res = db.query(media_model.Media).filter(
-            media_model.Media.id == im_id,
+            media_model.Media.id == me_id,
             media_model.Media.status == "ACTIVE",
         ).first()
     except SQLAlchemyError as err:
@@ -31,7 +33,7 @@ async def consume_and_log_image_view(
 
     # Check 1: Existence
     if not media_res:
-        raise ImageNotFoundException(f"Image with ID '{im_id}' was not found.")
+        raise ImageNotFoundException(f"Image with ID '{me_id}' was not found.")
 
     # Check 2: Expiration (> 24 hours)
     if media_res.expiries_at <= now:
@@ -44,7 +46,7 @@ async def consume_and_log_image_view(
     # 2. Check if already viewed by this user
     try:
         already_viewed = db.query(audit_model.MediaAudit).filter(
-            audit_model.MediaAudit.image_id == im_id,
+            audit_model.MediaAudit.media_id == me_id,
             audit_model.MediaAudit.viewer_id == viewer_id
         ).first()
     except SQLAlchemyError as err:
@@ -56,7 +58,7 @@ async def consume_and_log_image_view(
     # 3. Write audit log with transaction safety (rollback on fail)
     try:
         new_audit_rec = audit_model.MediaAudit(
-            image_id=im_id,
+            media_id=me_id,
             viewer_id=viewer_id
         )
         db.add(new_audit_rec)
@@ -68,5 +70,13 @@ async def consume_and_log_image_view(
     except SQLAlchemyError as err:
         db.rollback()
         raise MediaDatabaseException("Failed to record view audit log in database.") from err
-
-    return media_res.url
+    # 4. Generate S3 Presigned View URL using the media file_key
+    # Note: Replace `file_key` with the exact column name on your Media model (e.g., s3_key, key, file_path)
+    presigned_url = generate_presigned_view_url(
+        file_key=media_res.file_key, 
+        expires_in=expires_in_seconds
+    )
+    return PresignedViewResponse(
+        url=presigned_url,
+        expires_in_seconds=expires_in_seconds
+    )

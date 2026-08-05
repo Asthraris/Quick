@@ -6,7 +6,7 @@ from src.core.database import Base
 class MediaAudit(Base):
     __tablename__ = "media_audit"
 
-    image_id = Column(
+    media_id = Column(
         UUID(as_uuid= True),
         ForeignKey("medias.id" , ondelete="CASCADE"),
         primary_key=True

@@ -1,0 +1,19 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+
+# Environment variables & secrets
+#it be standard to not upload .env in docker directly intead set it everytime when container is spinned up as -e or provide the file dynamically
+# cause we dont want to hardstore the .env in the image , or use docker compose to writethat
+.env
+.env.*
+
+# Git & Docker files
+.git/
+.gitignore
+Dockerfile
+.dockerignore
