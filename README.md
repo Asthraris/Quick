@@ -35,7 +35,7 @@ Friendships are stored bidirectionally in PostgreSQL. An accepted friendship all
 To prevent client-side exploits and unauthorized caching, media URLs are hidden until the user explicitly requests to view an image. Viewing an image atomically writes an audit record to PostgreSQL, permanently locking out subsequent view attempts.
 
 ```
-┌──────────┐                               ┌──────────┐                          ┌────────────┐               ┌────────────┐
+ ┌──────────┐                               ┌──────────┐                          ┌────────────┐               ┌────────────┐
  │  Client  │                               │  FastAPI │                          │ PostgreSQL │               │   AWS S3   │
  └────┬─────┘                               └────┬─────┘                          └─────┬──────┘               └─────┬──────┘
       │                                          │                                      │                            │
@@ -73,7 +73,7 @@ To prevent client-side exploits and unauthorized caching, media URLs are hidden 
       │                                          │                                      │                            │
       │ 9. POST /media/{id}/view                 │                                      │                            │
       │    (Re-view attempt)                     │                                      │                            │
-      │─────────────────────────────────────────>│ 10. Audit Record Exists             │                            │
+      │─────────────────────────────────────────>│ 10. Audit Record Exists              │                            │
       │                                          │─────────────────────────────────────>│                            │
       │ 11. 403 Forbidden                        │<─────────────────────────────────────│                            │
       │<─────────────────────────────────────────│                                      │                            │

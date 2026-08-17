@@ -14,5 +14,16 @@ services:
     # Left side is unique to this project; right side is the correct internal Postgres path
       - quick-postgres-data:/var/lib/postgresql
 
+
+  backend:
+    image: quick-backend:latest
+    container_name: quick-backend
+    environment:
+    # all env gets pushed as os env var
+      - JWT_SECRET_KEY=0a4f3868782dba4de1993cfd60ecef3d97bc46f4f8e38e3f57f51d29efaaa00d
+      - JWT_ALGORITHM=HS256
+      - DATABASE_URL=postgresql://aman:noluck@postgres:5432/quick
+    ports:
+      - "8000:8000"
 volumes:
   quick-postgres-data:
